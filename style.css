@@ -9,50 +9,47 @@ body {
     align-items: center;
     min-height: 100vh;
     color: #333;
-    /* 防止移动端奇怪的缩放 */
     overflow-x: hidden;
 }
 
 .app-container {
     display: flex;
-    /* 宽度占满，左右留边距，适合移动端 */
     width: 100%;
-    max-width: 1200px; /* 最大宽度限制 */
-    height: 100vh; /* 占据整个视口高度 */
-    max-height: 100vh; /* 确保不超过视口 */
+    max-width: 1200px;
+    height: 100vh;
+    max-height: 100vh;
     background-color: #fff;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    /* 移除圆角和溢出隐藏，让其占满屏幕 */
-    /* border-radius: 10px; */
-    /* overflow: hidden; */
-    box-sizing: border-box; /* 包含边框和内边距在宽高内 */
+    box-sizing: border-box;
 }
 
 
 /* --- 聊天区域 --- */
 .chat-area {
-    flex-grow: 1; /* 占据所有可用空间 */
-    width: 100%; /* 确保宽度占满 */
+    flex-grow: 1;
+    width: 100%;
     display: flex;
     flex-direction: column;
     background-color: #ffffff;
-    height: 100%; /* 确保聊天区域占满容器高度 */
+    height: 100%;
     max-height: 100vh;
+    position: relative; /* 为了加载文件按钮的绝对定位 */
 }
 
-/* 聊天区域头部，用于放置按钮等 */
+/* 聊天区域头部 */
 .chat-header {
     display: flex;
-    justify-content: flex-end; /* 将按钮推到右侧 */
+    justify-content: flex-end;
     padding: 10px 20px;
     border-bottom: 1px solid #e0e0e0;
     background-color: #f8f9fa;
 }
 
+/* 设置按钮 */
 #settings-button {
     background: none;
     border: none;
-    font-size: 1.4em; /* 图标大小 */
+    font-size: 1.4em;
     color: #555;
     cursor: pointer;
     padding: 5px;
@@ -64,39 +61,43 @@ body {
 
 /* --- 聊天容器 --- */
 #chat-container {
-    flex-grow: 1; /* 占据中间的主要空间 */
-    overflow-y: auto; /* 内容超出时滚动 */
+    flex-grow: 1;
+    overflow-y: auto;
     padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 15px; /* 消息间距 */
+    gap: 15px;
+    /* 平滑滚动行为 */
+    scroll-behavior: smooth;
 }
 
 /* --- 消息通用样式 --- */
 .message {
     display: flex;
-    align-items: flex-start; /* 头像和内容顶部对齐 */
+    align-items: flex-start;
     max-width: 85%;
-    /* position: relative; */ /* 相对定位移到 wrapper 上 */
 }
 
+/* 头像 */
 .message .avatar {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     margin-right: 10px;
-    flex-shrink: 0; /* 防止头像缩放 */
+    flex-shrink: 0;
 }
 
+/* 消息内容包装器 (包含气泡和操作按钮) */
 .message-content-wrapper {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
-    position: relative; /* 设置为相对定位，作为操作按钮的定位基准 */
-    padding-bottom: 25px; /* 增加底部内边距，为操作按钮留出空间，解决悬停问题 */
-    min-width: 0; /* 防止 flex item 内容溢出 */
+    position: relative;
+    padding-bottom: 25px; /* 为操作按钮留空间 */
+    min-width: 0;
 }
 
+/* 消息气泡 */
 .message-bubble {
     padding: 12px 18px;
     border-radius: 18px;
@@ -110,80 +111,36 @@ body {
 
 /* --- 用户消息样式 --- */
 .message.user {
-    align-self: flex-end; /* 用户消息靠右 */
-    flex-direction: row-reverse; /* 头像在右 */
+    align-self: flex-end;
+    flex-direction: row-reverse;
 }
-
-.message.user .avatar {
-    margin-right: 0;
-    margin-left: 10px;
-}
-
-.message.user .message-bubble {
-    background-color: #007bff;
-    color: #fff;
-    border-bottom-right-radius: 5px; /* 小尾巴效果 */
-}
-.message.user .message-bubble a {
-    color: #e0f7ff;
-    text-decoration: underline;
-}
+.message.user .avatar { margin: 0 0 0 10px; }
+.message.user .message-bubble { background-color: #007bff; color: #fff; border-bottom-right-radius: 5px; }
+.message.user .message-bubble a { color: #e0f7ff; text-decoration: underline; }
 
 /* --- AI 消息样式 --- */
-.message.assistant {
-    align-self: flex-start; /* AI 消息靠左 */
-}
-
-.message.assistant .message-bubble {
-    background-color: #e9ecef;
-    color: #333;
-    border-bottom-left-radius: 5px; /* 小尾巴效果 */
-}
-.message.assistant .message-bubble a {
-    color: #0056b3;
-    text-decoration: underline;
-}
+.message.assistant { align-self: flex-start; }
+.message.assistant .message-bubble { background-color: #e9ecef; color: #333; border-bottom-left-radius: 5px; }
+.message.assistant .message-bubble a { color: #0056b3; text-decoration: underline; }
 
 /* --- 思维链 (Reasoning) 样式 --- */
 .reasoning-content {
-    background-color: #f0f0f0;
-    padding: 10px 15px;
-    margin-bottom: 8px;
-    border-radius: 10px;
-    font-size: 0.9em;
-    color: #555;
-    border-left: 3px solid #007bff;
-    white-space: pre-wrap;
-    display: none; /* 默认隐藏 */
-    box-sizing: border-box;
-    max-width: 100%;
-    overflow-wrap: break-word;
-    word-wrap: break-word;
+    background-color: #f0f0f0; padding: 10px 15px; margin-bottom: 8px;
+    border-radius: 10px; font-size: 0.9em; color: #555;
+    border-left: 3px solid #007bff; white-space: pre-wrap;
+    display: none; box-sizing: border-box; max-width: 100%;
+    overflow-wrap: break-word; word-wrap: break-word;
 }
+.reasoning-content.visible { display: block; }
+.reasoning-toggle { font-size: 0.8em; color: #007bff; cursor: pointer; margin-bottom: 5px; display: block; }
+.reasoning-toggle:hover { text-decoration: underline; }
 
-.reasoning-content.visible {
-    display: block; /* 显示 */
-}
-
-.reasoning-toggle {
-    font-size: 0.8em;
-    color: #007bff;
-    cursor: pointer;
-    margin-bottom: 5px;
-    display: block;
-}
-.reasoning-toggle:hover {
-    text-decoration: underline;
-}
-
+/* --- 实际对话内容样式 --- */
 .actual-content {
-    white-space: pre-wrap;
-    box-sizing: border-box;
-    max-width: 100%;
-    overflow-wrap: break-word;
-    word-wrap: break-word;
+    white-space: pre-wrap; box-sizing: border-box; max-width: 100%;
+    overflow-wrap: break-word; word-wrap: break-word;
 }
-/* Markdown basic styling (保持不变) */
+/* Markdown 基础样式 */
 .actual-content code { background-color: #eee; padding: 2px 4px; border-radius: 3px; font-family: monospace; }
 .actual-content pre { background-color: #2d2d2d; color: #f0f0f0; padding: 15px; border-radius: 5px; overflow-x: auto; white-space: pre; }
 .actual-content pre code { background-color: transparent; padding: 0; }
@@ -194,273 +151,141 @@ body {
 
 /* --- 消息操作按钮 --- */
 .message-actions {
-    position: absolute;
-    /* 定位在 content-wrapper 的底部，留一点间隙 */
-    bottom: 5px;
-    display: none; /* 默认隐藏 */
-    gap: 8px;
-    background: rgba(248, 249, 250, 0.9); /* 背景色稍微明显一点 */
-    padding: 4px 8px; /* 微调内边距 */
-    border-radius: 15px; /* 圆角 */
-    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-    z-index: 1; /* 确保在气泡之上（如果需要） */
+    position: absolute; bottom: 5px; display: none; gap: 8px;
+    background: rgba(248, 249, 250, 0.9); padding: 4px 8px;
+    border-radius: 15px; box-shadow: 0 1px 4px rgba(0,0,0,0.15); z-index: 1;
 }
-
-/* 修改悬停目标为 wrapper */
-.message-content-wrapper:hover .message-actions {
-    display: flex; /* 悬停在 wrapper 上时显示 */
-}
-
-/* 根据消息角色调整左右位置 */
-.message.user .message-actions {
-    right: 10px; /* 调整右侧距离 */
-}
-
-.message.assistant .message-actions {
-    left: 10px; /* 调整左侧距离 */
-}
-
-
-.action-icon {
-    cursor: pointer;
-    color: #555;
-    font-size: 0.9em;
-    transition: color 0.2s ease;
-}
-
-.action-icon:hover {
-    color: #007bff;
-}
-
-.action-icon.delete-btn:hover {
-    color: #dc3545; /* 删除按钮红色 */
-}
-
-/* 用户消息隐藏重新生成按钮 */
-.message.user .regenerate-btn {
-    display: none;
-}
-/* 用户消息隐藏思维链开关 */
-.message.user .reasoning-toggle {
-    display: none;
-}
+/* 悬停在包装器上显示按钮 */
+.message-content-wrapper:hover .message-actions { display: flex; }
+/* 按钮位置 */
+.message.user .message-actions { right: 10px; }
+.message.assistant .message-actions { left: 10px; }
+/* 图标样式 */
+.action-icon { cursor: pointer; color: #555; font-size: 0.9em; transition: color 0.2s ease; }
+.action-icon:hover { color: #007bff; }
+.action-icon.delete-btn:hover { color: #dc3545; }
+/* 隐藏用户消息的重新生成和思维链开关 */
+.message.user .regenerate-btn, .message.user .reasoning-toggle { display: none; }
 
 /* --- 消息输入区域 --- */
 #message-input-container {
-    display: flex;
-    padding: 10px 15px; /* 减少一点内边距 */
-    border-top: 1px solid #e0e0e0;
-    background-color: #f8f9fa;
-    align-items: flex-end; /* 底部对齐，当输入框增高时按钮仍在底部 */
+    display: flex; padding: 10px 15px; border-top: 1px solid #e0e0e0;
+    background-color: #f8f9fa; align-items: flex-end;
 }
-
+/* 输入框 */
 #user-input {
-    flex-grow: 1;
-    padding: 10px 15px; /* 调整内边距 */
-    border: 1px solid #ccc;
-    border-radius: 20px;
-    resize: none;
-    font-size: 1em;
-    margin-right: 10px;
-    height: auto;
-    min-height: 22px; /* 调整最小高度以匹配行高 */
-    max-height: 150px;
-    overflow-y: auto;
-    line-height: 1.4;
-    box-sizing: border-box;
+    flex-grow: 1; padding: 10px 15px; border: 1px solid #ccc; border-radius: 20px;
+    resize: none; font-size: 1em; margin-right: 10px; height: auto;
+    min-height: 22px; max-height: 150px; overflow-y: auto; line-height: 1.4; box-sizing: border-box;
 }
-
+/* 发送按钮 */
 #send-button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 40px; /* 稍微缩小按钮 */
-    height: 40px;
-    font-size: 1.1em; /* 调整图标大小 */
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: background-color 0.2s ease;
-    flex-shrink: 0;
+    background-color: #007bff; color: white; border: none; border-radius: 50%;
+    width: 40px; height: 40px; font-size: 1.1em; cursor: pointer; display: flex;
+    justify-content: center; align-items: center; transition: background-color 0.2s ease; flex-shrink: 0;
 }
-
-#send-button:hover {
-    background-color: #0056b3;
-}
-#send-button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-}
+#send-button:hover { background-color: #0056b3; }
+#send-button:disabled { background-color: #cccccc; cursor: not-allowed; }
 
 
 /* --- 存储控制按钮 --- */
 .storage-controls {
-    padding: 10px 15px; /* 减少内边距 */
-    border-top: 1px solid #e0e0e0;
-    background-color: #f8f9fa;
-    display: flex;
-    justify-content: flex-start;
-    gap: 10px;
-    flex-wrap: wrap; /* 允许换行 */
+    padding: 10px 15px; border-top: 1px solid #e0e0e0; background-color: #f8f9fa;
+    display: flex; justify-content: flex-start; gap: 10px; flex-wrap: wrap;
 }
-
+/* 通用按钮样式 */
 .storage-controls button, .load-button {
-    padding: 8px 12px; /* 调整按钮大小 */
-    border: 1px solid #ccc;
-    background-color: #fff;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 0.9em;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
+    padding: 8px 12px; border: 1px solid #ccc; background-color: #fff; border-radius: 5px;
+    cursor: pointer; font-size: 0.9em; display: inline-flex; align-items: center; gap: 5px;
     transition: background-color 0.2s, border-color 0.2s;
 }
-.storage-controls button:hover, .load-button:hover {
-    background-color: #e9ecef;
-    border-color: #bbb;
-}
-#clear-button {
-    margin-left: auto; /* 保持清空按钮在右侧（如果空间足够）*/
-    border-color: #dc3545;
-    color: #dc3545;
-}
-#clear-button:hover {
-    background-color: #dc3545;
-    color: #fff;
-}
+.storage-controls button:hover, .load-button:hover { background-color: #e9ecef; border-color: #bbb; }
+/* 加载按钮的 Label 样式 */
+.load-button { /* 继承按钮样式，使其看起来像按钮 */ }
+/* 清空按钮 */
+#clear-button { margin-left: auto; border-color: #dc3545; color: #dc3545; }
+#clear-button:hover { background-color: #dc3545; color: #fff; }
 
 /* --- 编辑状态 --- */
 .message-bubble.editing { padding: 0; }
 .edit-textarea { width: 100%; min-height: 50px; border: 1px dashed #007bff; border-radius: 5px; padding: 10px; font-family: inherit; font-size: inherit; line-height: inherit; box-sizing: border-box; resize: vertical; }
-.edit-actions { margin-top: 5px; display: flex; gap: 5px; padding: 0 10px 5px; } /* 给按钮一点边距 */
+.edit-actions { margin-top: 5px; display: flex; gap: 5px; padding: 0 10px 5px; }
 .edit-actions button { padding: 3px 8px; font-size: 0.8em; cursor: pointer; border-radius: 3px; }
 .save-edit-btn { background-color: #28a745; color: white; border: 1px solid #28a745; }
 .cancel-edit-btn { background-color: #6c757d; color: white; border: 1px solid #6c757d; }
 
 /* --- 设置模态弹窗样式 --- */
 .modal {
-    display: none; /* 默认隐藏 */
-    position: fixed; /* 固定定位，覆盖整个屏幕 */
-    z-index: 1000; /* 确保在最上层 */
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto; /* 如果内容超长则允许滚动 */
-    background-color: rgba(0, 0, 0, 0.5); /* 半透明黑色背景 */
-    animation: fadeIn 0.3s ease-out; /* 淡入动画 */
+    display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+    width: 100%; height: 100%; overflow: auto; background-color: rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.3s ease-out;
 }
-
+/* 弹窗内容区域 */
 .modal-content {
-    background-color: #fefefe;
-    margin: 10% auto; /* 上下 10% 边距，左右自动居中 */
-    padding: 25px 30px;
-    border: 1px solid #888;
-    width: 80%; /* 响应式宽度 */
-    max-width: 500px; /* 最大宽度 */
-    border-radius: 8px;
-    position: relative;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    animation: slideIn 0.3s ease-out; /* 滑入动画 */
+    background-color: #fefefe; margin: 5% auto; /* 减少顶部边距 */ padding: 25px 30px;
+    border: 1px solid #888; width: 90%; max-width: 600px; /* 稍微加宽以容纳更多设置 */ border-radius: 8px;
+    position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    animation: slideIn 0.3s ease-out;
 }
-
+/* 关闭按钮 */
 .close-button {
-    color: #aaa;
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    font-size: 28px;
-    font-weight: bold;
+    color: #aaa; position: absolute; top: 10px; right: 20px;
+    font-size: 28px; font-weight: bold; cursor: pointer;
 }
-
-.close-button:hover,
-.close-button:focus {
-    color: black;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-.modal h2 {
-    text-align: center;
-    margin-top: 0;
-    margin-bottom: 25px;
-    color: #555;
-    font-size: 1.4em;
-}
-
-/* 继承 settings-panel 的内部样式 */
-.modal .setting-item { margin-bottom: 20px; }
-.modal .setting-item label { display: block; margin-bottom: 8px; font-weight: 600; color: #444; font-size: 0.9em; }
+.close-button:hover, .close-button:focus { color: black; text-decoration: none; }
+/* 弹窗标题 */
+.modal h2 { text-align: center; margin-top: 0; margin-bottom: 25px; color: #555; font-size: 1.4em; }
+/* 弹窗内设置项 */
+.modal .setting-item { margin-bottom: 18px; /* 减少间距 */ }
+.modal .setting-item label { display: block; margin-bottom: 6px; font-weight: 600; color: #444; font-size: 0.9em; }
+/* 输入框通用样式 */
 .modal .setting-item input[type="password"],
 .modal .setting-item select,
-.modal .setting-item textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 0.9em; }
+.modal .setting-item textarea,
+.modal .setting-item input[type="number"], /* 新增 */
+.modal .setting-item input[type="text"] { /* 新增 */
+    width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;
+    box-sizing: border-box; font-size: 0.9em;
+}
+/* Range 输入框 */
+.modal .setting-item input[type="range"] { width: 100%; cursor: pointer; margin-top: 5px; }
+/* 复选框 */
 .modal .setting-item input[type="checkbox"] { margin-right: 5px; vertical-align: middle; }
+/* Textarea */
 .modal .setting-item textarea { resize: vertical; min-height: 60px; }
-.modal .setting-item input[type="range"] { width: 100%; cursor: pointer; }
-.modal .setting-item span { font-weight: normal; color: #007bff; }
+/* 滑块值显示 */
+.modal .setting-item span[id$="-value"] { font-weight: normal; color: #007bff; }
+/* 设置项描述文字 */
+.modal .setting-item .setting-description {
+    font-size: 0.8em;
+    color: #6c757d; /* 灰色文字 */
+    display: block; /* 独占一行 */
+    margin-top: 5px;
+}
+
 
 /* 动画效果 */
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-@keyframes slideIn {
-     from { transform: translateY(-30px); opacity: 0; }
-     to { transform: translateY(0); opacity: 1; }
-}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-/* --- 滚动条美化 (保持不变) --- */
+/* --- 滚动条美化 --- */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
 ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: #aaa; }
 
-/* 响应式调整：小屏幕时内边距小一些 */
+/* --- 响应式调整 --- */
 @media (max-width: 600px) {
-    .app-container {
-        height: 100vh; /* 在小屏幕上强制占满 */
-        max-height: 100vh;
-        box-shadow: none; /* 可以去掉阴影 */
-    }
-    #chat-container {
-        padding: 10px; /* 减少内边距 */
-    }
-    #message-input-container {
-        padding: 8px 10px;
-    }
-    .storage-controls {
-        padding: 8px 10px;
-    }
-    .message .avatar {
-        width: 35px; /* 头像小一点 */
-        height: 35px;
-        margin-right: 8px;
-    }
-    .message.user .avatar {
-        margin-left: 8px;
-    }
-    .message-content-wrapper {
-        padding-bottom: 28px; /* 确保按钮空间 */
-    }
-    .message-actions {
-        gap: 6px; /* 图标间距小一点 */
-        padding: 3px 6px;
-    }
-     .message.user .message-actions {
-        right: 5px;
-    }
-    .message.assistant .message-actions {
-        left: 5px;
-    }
-    .modal-content {
-        width: 90%; /* 弹窗宽度更大 */
-        margin: 15% auto; /* 调整垂直边距 */
-        padding: 20px;
-    }
-    .modal h2 {
-        font-size: 1.2em;
-    }
+    .app-container { height: 100vh; max-height: 100vh; box-shadow: none; }
+    #chat-container { padding: 10px; }
+    #message-input-container { padding: 8px 10px; }
+    .storage-controls { padding: 8px 10px; }
+    .message .avatar { width: 35px; height: 35px; margin-right: 8px; }
+    .message.user .avatar { margin-left: 8px; }
+    .message-content-wrapper { padding-bottom: 28px; }
+    .message-actions { gap: 6px; padding: 3px 6px; }
+    .message.user .message-actions { right: 5px; }
+    .message.assistant .message-actions { left: 5px; }
+    .modal-content { width: 95%; margin: 10% auto; padding: 15px; } /* 调整移动端弹窗 */
+    .modal h2 { font-size: 1.2em; }
 }
