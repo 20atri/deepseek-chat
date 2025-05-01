@@ -71,6 +71,7 @@
                 <select id="model-select">
                     <option value="deepseek-chat">deepseek-chat</option>
                     <option value="deepseek-reasoner" selected>deepseek-reasoner</option>
+                    <!-- 注意：你可能需要根据 DeepSeek 官方更新支持的模型列表 -->
                 </select>
             </div>
 
@@ -141,6 +142,8 @@
     </div>
 
     <!-- JavaScript 文件引用 -->
+    <!-- **【修改点】** 引入本地的 marked.js 库，确保在 script.js 之前 -->
+    <script src="js/marked.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
