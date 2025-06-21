@@ -81,7 +81,18 @@ function populatePredefinedPrompts() {
 // --- 事件监听器 ---
 function addEventListeners() {
     sendButton.addEventListener('click', handleSendMessage);
-    userInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } });
+
+    // **【核心修改点】** 处理用户输入框的按键事件
+    userInput.addEventListener('keydown', (e) => {
+        // 当按下 Ctrl + Enter 时发送消息
+        if (e.key === 'Enter' && e.ctrlKey) {
+            e.preventDefault(); // 阻止可能的默认行为（如在某些表单中提交）
+            handleSendMessage();
+        }
+        // 如果只是按下 Enter 键 (没有 Ctrl)，则会执行 textarea 的默认行为，即换行
+        // 不需要额外处理 Shift+Enter，它也会默认换行
+    });
+
     userInput.addEventListener('input', () => adjustTextareaHeight(userInput));
     saveButton.addEventListener('click', saveConversationToFile);
     loadInput.addEventListener('change', loadConversationFromFile);
