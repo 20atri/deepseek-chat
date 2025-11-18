@@ -44,6 +44,12 @@
                     <i class="fas fa-upload"></i> 加载
                 </label>
                 <input type="file" id="load-input" accept=".json" style="display: none;"> <!-- 隐藏的文件选择框 -->
+                
+                <!-- 【新增】手动生成回复按钮 -->
+                <button id="manual-generate-button" title="基于当前上下文生成 AI 回复">
+                    <i class="fas fa-magic"></i> 生成回复
+                </button>
+
                  <!-- 清空按钮 -->
                  <button id="clear-button" title="清空对话">
                      <i class="fas fa-trash-alt"></i> 清空
@@ -142,7 +148,6 @@
     </div>
 
     <!-- JavaScript 文件引用 -->
-    <!-- **【修改点】** 引入本地的 marked.js 库，确保在 script.js 之前 -->
     <script src="js/marked.min.js"></script>
     <script src="script.js"></script>
 </body>

@@ -5,6 +5,7 @@ const sendButton = document.getElementById('send-button');
 const saveButton = document.getElementById('save-button');
 const loadInput = document.getElementById('load-input');
 const clearButton = document.getElementById('clear-button');
+const manualGenerateButton = document.getElementById('manual-generate-button'); // 【新增】
 const settingsButton = document.getElementById('settings-button');
 const settingsModal = document.getElementById('settings-modal');
 const closeModalButton = settingsModal.querySelector('.close-button');
@@ -97,6 +98,12 @@ function addEventListeners() {
     saveButton.addEventListener('click', saveConversationToFile);
     loadInput.addEventListener('change', loadConversationFromFile);
     clearButton.addEventListener('click', clearConversation);
+    
+    // 【新增】监听手动生成按钮
+    if (manualGenerateButton) {
+        manualGenerateButton.addEventListener('click', handleManualGenerate);
+    }
+
     settingsButton.addEventListener('click', openSettingsModal);
     closeModalButton.addEventListener('click', closeSettingsModal);
     settingsModal.addEventListener('click', (event) => { if (event.target === settingsModal) closeSettingsModal(); });
@@ -205,6 +212,62 @@ async function handleSendMessage() {
         }
     }
     // finally 块将在 sendRequestToDeepSeekAPI 中处理按钮启用等
+}
+
+/**
+ * 【新增】处理手动触发 AI 回复
+ * 用于在修改历史记录后，手动请求 AI 基于当前上下文生成内容
+ */
+async function handleManualGenerate() {
+    // 1. 检查是否正在生成中
+    if (sendButton.disabled) {
+        alert("AI 正在响应中，请稍候...");
+        return;
+    }
+
+    // 2. 检查是否有消息
+    if (messages.length === 0) {
+        alert("当前没有对话记录，无法生成回复。");
+        return;
+    }
+
+    // 3. 检查最后一条消息的角色
+    // 只有当最后一条是 User (或 System) 时，AI 回复才符合逻辑
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage.role !== 'user' && lastMessage.role !== 'system') {
+        alert("最后一条消息不是用户发送的。请先发送消息或删除末尾的 AI 消息后再试。");
+        return;
+    }
+
+    // 4. 二次确认 (防止误触)
+    const confirmText = "确定要基于当前的对话历史请求 AI 生成新回复吗？";
+    if (!confirm(confirmText)) {
+        return;
+    }
+
+    const apiKey = apiKeyInput.value.trim();
+    if (!apiKey) {
+        alert("请点击设置按钮 ⚙️ 输入 API Key。");
+        openSettingsModal();
+        return;
+    }
+
+    // 5. 触发 API 请求
+    // 逻辑与 handleSendMessage 类似，但不需要处理输入框
+    toggleSendButton(false); // 禁用按钮
+    forceScrollChatToBottom(); // 滚动到底部
+
+    try {
+        // 直接调用现有的请求函数，它会读取全局 messages 数组
+        // 并自动添加 assistant 的占位符
+        await sendRequestToDeepSeekAPI(); 
+    } catch (error) {
+        console.error("手动请求出错:", error);
+        if (error.name !== 'AbortError') {
+            appendErrorMessageToUI("请求出错: " + error.message);
+        }
+    }
+    // finally 块会在 sendRequestToDeepSeekAPI 中处理
 }
 
 /**
@@ -707,6 +770,13 @@ function toggleSendButton(enabled) {
          // 可选：更改图标或背景色以示区别
          // const icon = sendButton.querySelector('i');
          // if (icon) icon.className = enabled ? 'fas fa-paper-plane' : 'fas fa-spinner fa-spin'; // 示例：用加载图标
+     }
+
+     // 【新增】同步控制手动生成按钮的状态
+     if (manualGenerateButton) {
+         manualGenerateButton.disabled = !enabled;
+         manualGenerateButton.style.cursor = enabled ? 'pointer' : 'not-allowed';
+         manualGenerateButton.style.opacity = enabled ? '1' : '0.6';
      }
 }
 

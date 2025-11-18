@@ -487,8 +487,22 @@ body {
     border-color: #bbb;
 }
 .load-button { /* 继承按钮样式 */ }
+
+/* === 【新增】手动生成按钮样式 === */
+#manual-generate-button {
+    margin-left: auto; /* 将生成按钮和后面的清空按钮推到右边 */
+    color: #28a745; /* 绿色主题 */
+    border-color: #28a745;
+}
+#manual-generate-button:hover {
+    background-color: #28a745;
+    color: #fff;
+}
+
+/* === 【修改】清空按钮样式 === */
 #clear-button {
-    margin-left: auto;
+    /* margin-left: auto;  <-- 移除这个，由前一个按钮的 margin-left: auto 负责推到右边 */
+    margin-left: 0; /* 可以根据需要设置间距，例如 0 或 10px */
     border-color: #dc3545;
     color: #dc3545;
 }
