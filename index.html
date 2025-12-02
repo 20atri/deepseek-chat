@@ -71,14 +71,28 @@
                 <input type="password" id="api-key" placeholder="输入你的 DeepSeek API Key">
             </div>
 
-            <!-- 模型选择 -->
+            <!-- 【新增】API URL 选择 -->
+            <div class="setting-item">
+                <label for="api-url-select">API 地址 (Base URL):</label>
+                <select id="api-url-select">
+                    <option value="https://api.deepseek.com" selected>标准版 (api.deepseek.com)</option>
+                    <option value="https://api.deepseek.com/v3.2_speciale_expires_on_20251215">V3.2 特供版 (2025/12/15过期)</option>
+                    <option value="custom">自定义地址...</option>
+                </select>
+                <!-- 自定义 URL 输入框 (默认隐藏) -->
+                <input type="text" id="custom-url-input" class="custom-input hidden" placeholder="输入自定义 Base URL (例如 https://my-proxy.com)">
+            </div>
+
+            <!-- 【修改】模型选择 (支持自定义) -->
             <div class="setting-item">
                 <label for="model-select">模型:</label>
                 <select id="model-select">
                     <option value="deepseek-chat">deepseek-chat</option>
                     <option value="deepseek-reasoner" selected>deepseek-reasoner</option>
-                    <!-- 注意：你可能需要根据 DeepSeek 官方更新支持的模型列表 -->
+                    <option value="custom">自定义模型...</option>
                 </select>
+                <!-- 自定义模型输入框 (默认隐藏) -->
+                <input type="text" id="custom-model-input" class="custom-input hidden" placeholder="输入模型名称 (例如 gpt-4o)">
             </div>
 
             <!-- 温度 (Temperature) -->

@@ -589,6 +589,16 @@ body {
 .modal .setting-item span[id$="-value"] { font-weight: bold; color: #007bff; margin-left: 5px; }
 .modal .setting-item .setting-description { font-size: 0.8em; color: #6c757d; display: block; margin-top: 6px; }
 
+/* 【新增】自定义输入框辅助样式 */
+.custom-input {
+    margin-top: 10px;
+    border-color: #007bff !important; /* 强调一下是自定义的 */
+    background-color: #f0f7ff;
+}
+.hidden {
+    display: none !important;
+}
+
 
 /* 动画效果 */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
