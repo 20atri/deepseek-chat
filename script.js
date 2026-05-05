@@ -6,6 +6,12 @@ const saveButton = document.getElementById('save-button');
 const loadInput = document.getElementById('load-input');
 const clearButton = document.getElementById('clear-button');
 const manualGenerateButton = document.getElementById('manual-generate-button'); // 【新增】
+const scrollControlBtn = document.getElementById('scroll-control-btn'); // 新增：滚动控制按钮
+const scrollPopover = document.getElementById('scroll-popover'); // 新增：滚动 Popover
+const scrollToTopBtn = document.getElementById('scroll-to-top-btn'); // 新增：一键置顶
+const scrollToBottomBtn = document.getElementById('scroll-to-bottom-btn'); // 新增：一键到底
+const hideAllReasoningBtn = document.getElementById('hide-all-reasoning-btn'); // 新增：隐藏所有思维链
+const showAllReasoningBtn = document.getElementById('show-all-reasoning-btn'); // 新增：展开所有思维链
 const settingsButton = document.getElementById('settings-button');
 const settingsModal = document.getElementById('settings-modal');
 const closeModalButton = settingsModal.querySelector('.close-button');
@@ -33,6 +39,7 @@ const presPenaltyValueSpan = document.getElementById('pres-penalty-value'); // �
 const predefinedPromptSelect = document.getElementById('predefined-prompt-select');
 const systemPromptInput = document.getElementById('system-prompt');
 const reasoningDefaultVisibleCheckbox = document.getElementById('reasoning-default-visible');
+const reasoningEffortSelect = document.getElementById('reasoning-effort'); // 新增：思考强度
 
 // const DEEPSEEK_API_BASE_URL = 'https://api.deepseek.com'; // 【修改】移除常量，改为动态获取
 
@@ -52,6 +59,9 @@ let currentAssistantMessageDiv = null; // 当前 AI 消息 DOM
 let currentReasoningDiv = null; // 当前思维链 DOM
 let currentContentDiv = null; // 当前内容 DOM
 let currentAbortController = null; // 中断控制器
+let currentTimerEl = null; // 当前思维链计时器 DOM 元素
+let currentTimerStart = null; // 计时器开始时间戳
+let currentTimerInterval = null; // 计时器刷新间隔 ID
 let isUserScrolling = false; // 标记用户是否正在手动滚动
 let scrollTimeout = null; // 用于检测滚动停止的计时器
 
@@ -113,6 +123,14 @@ function addEventListeners() {
         manualGenerateButton.addEventListener('click', handleManualGenerate);
     }
 
+    // 滚动控制
+    scrollControlBtn.addEventListener('click', toggleScrollPopover);
+    scrollToTopBtn.addEventListener('click', scrollToChatTop);
+    scrollToBottomBtn.addEventListener('click', scrollToChatBottom);
+    hideAllReasoningBtn.addEventListener('click', hideAllReasoning);
+    showAllReasoningBtn.addEventListener('click', showAllReasoning);
+    document.addEventListener('click', handleClickOutsidePopover);
+
     settingsButton.addEventListener('click', openSettingsModal);
     closeModalButton.addEventListener('click', closeSettingsModal);
     settingsModal.addEventListener('click', (event) => { if (event.target === settingsModal) closeSettingsModal(); });
@@ -136,6 +154,7 @@ function addEventListeners() {
     predefinedPromptSelect.addEventListener('change', saveSettings);
     systemPromptInput.addEventListener('change', saveSettings);
     reasoningDefaultVisibleCheckbox.addEventListener('change', saveSettings);
+    reasoningEffortSelect.addEventListener('change', saveSettings); // 新增：思考强度
 
     // 聊天容器滚动监听 (用于优化自动滚动)
     chatContainer.addEventListener('scroll', handleChatScroll);
@@ -375,6 +394,9 @@ async function sendRequestToDeepSeekAPI() {
     currentAbortController = new AbortController();
     const signal = currentAbortController.signal;
 
+    // 获取思考强度
+    const reasoningEffort = reasoningEffortSelect.value;
+
     // --- 构建请求体 (包含新参数) ---
     const requestBody = {
         model: model, // 使用动态模型变量
@@ -387,6 +409,10 @@ async function sendRequestToDeepSeekAPI() {
         presence_penalty: presence_penalty, // 新增
         stream: true
     };
+    // 仅当 reasoning_effort 有值时添加（仅对 reasoner 模型有效）
+    if (reasoningEffort) {
+        requestBody.reasoning_effort = reasoningEffort;
+    }
     // 移除值为 null 或无效值的参数，或与默认值相同的参数（可选，但更规范）
     if (requestBody.max_tokens === null || isNaN(requestBody.max_tokens) || requestBody.max_tokens <= 0) {
         delete requestBody.max_tokens;
@@ -456,6 +482,9 @@ async function sendRequestToDeepSeekAPI() {
          currentReasoningDiv = null;
          currentContentDiv = null;
          currentAbortController = null; // 清理中止控制器
+         currentTimerEl = null; // 清理计时器引用
+         currentTimerStart = null;
+         if (currentTimerInterval) { clearInterval(currentTimerInterval); currentTimerInterval = null; }
          conditionalScrollChatToBottom(); // 尝试滚动到底部
          saveConversationToLocalStorage(); // 保存最终状态
          console.log("sendRequestToDeepSeekAPI finally block executed.");
@@ -472,6 +501,7 @@ async function processStream(stream) {
     let accumulatedContent = "";
     let accumulatedReasoning = "";
     let initialChunkReceived = false; // 标记是否收到第一个有效块
+    let reasoningTimerStarted = false; // 标记计时器是否已启动
     const localMessageId = currentAssistantMessageId; // 捕获当前 ID
     console.log("开始处理流 for ID:", localMessageId);
 
@@ -524,6 +554,11 @@ async function processStream(stream) {
 
                           // 更新思维链内容
                           if (delta.reasoning_content) {
+                              // 首次收到思维链时启动计时器
+                              if (!reasoningTimerStarted) {
+                                  reasoningTimerStarted = true;
+                                  startReasoningTimer();
+                              }
                               accumulatedReasoning += delta.reasoning_content;
                               if (messages[messageIndex]) { // 再次检查索引有效性
                                   messages[messageIndex].reasoning_content = accumulatedReasoning;
@@ -545,6 +580,11 @@ async function processStream(stream) {
 
                           // 更新主要内容
                           if (delta.content) {
+                              // 思维链结束，停止计时器
+                              if (reasoningTimerStarted) {
+                                  stopReasoningTimer();
+                                  reasoningTimerStarted = false;
+                              }
                               accumulatedContent += delta.content;
                               if (messages[messageIndex]) { // 再次检查索引有效性
                                   messages[messageIndex].content = accumulatedContent;
@@ -567,6 +607,11 @@ async function processStream(stream) {
     } // end while loop
 
     // --- 流结束后 ---
+    // 兜底：确保计时器已停止
+    if (reasoningTimerStarted) {
+        stopReasoningTimer();
+        reasoningTimerStarted = false;
+    }
     console.log("流结束，最终更新 UI for ID:", localMessageId);
     // **【修改点】** 在流结束后，使用 marked.js 渲染最终的 Markdown 内容
     if (currentContentDiv && document.body.contains(currentContentDiv)) {
@@ -634,6 +679,14 @@ function appendMessageToUI(message, isStreaming = false) {
             // 初始时，如果正在流式传输或已有内容，则显示按钮
             reasoningToggle.style.display = (message.reasoning_content || isStreaming) ? 'block' : 'none';
             contentWrapper.appendChild(reasoningToggle);
+
+            // 思维链计时器 — 放在切换按钮下方
+            const timerEl = document.createElement('span');
+            timerEl.className = 'reasoning-timer';
+            timerEl.textContent = '0.0s';
+            timerEl.id = `timer-${message.id}`;
+            contentWrapper.appendChild(timerEl);
+            if (isStreaming) currentTimerEl = timerEl;
 
             reasoningDiv = document.createElement('div');
             reasoningDiv.className = 'reasoning-content';
@@ -787,6 +840,74 @@ function conditionalScrollChatToBottom() {
 
 
 /**
+ * 切换滚动 Popover 显隐
+ */
+function toggleScrollPopover(e) {
+    e.stopPropagation();
+    const isHidden = scrollPopover.classList.contains('hidden');
+    if (isHidden) {
+        scrollPopover.classList.remove('hidden');
+        scrollControlBtn.classList.add('active');
+    } else {
+        scrollPopover.classList.add('hidden');
+        scrollControlBtn.classList.remove('active');
+    }
+}
+
+/**
+ * 点击 Popover 外部时关闭
+ */
+function handleClickOutsidePopover(e) {
+    if (!scrollPopover.classList.contains('hidden') &&
+        !scrollPopover.contains(e.target) &&
+        e.target !== scrollControlBtn &&
+        !scrollControlBtn.contains(e.target)) {
+        scrollPopover.classList.add('hidden');
+        scrollControlBtn.classList.remove('active');
+    }
+}
+
+/**
+ * 滚动到聊天顶部
+ */
+function scrollToChatTop() {
+    scrollPopover.classList.add('hidden');
+    scrollControlBtn.classList.remove('active');
+    if (chatContainer) {
+        chatContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+/**
+ * 滚动到聊天底部
+ */
+function scrollToChatBottom() {
+    scrollPopover.classList.add('hidden');
+    scrollControlBtn.classList.remove('active');
+    if (chatContainer) {
+        chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+    }
+}
+
+/**
+ * 一键隐藏所有思维链
+ */
+function hideAllReasoning() {
+    scrollPopover.classList.add('hidden');
+    scrollControlBtn.classList.remove('active');
+    chatContainer.querySelectorAll('.reasoning-content').forEach(el => el.classList.remove('visible'));
+}
+
+/**
+ * 一键展开所有思维链
+ */
+function showAllReasoning() {
+    scrollPopover.classList.add('hidden');
+    scrollControlBtn.classList.remove('active');
+    chatContainer.querySelectorAll('.reasoning-content').forEach(el => el.classList.add('visible'));
+}
+
+/**
  * 处理聊天容器滚动事件，标记用户是否在滚动
  */
 function handleChatScroll() {
@@ -810,6 +931,45 @@ function updateSliderValue(slider, valueSpan) {
     if(slider && valueSpan) {
         valueSpan.textContent = slider.value;
     }
+}
+
+/**
+ * 启动思维链计时器
+ */
+function startReasoningTimer() {
+    if (!currentTimerEl) return;
+    currentTimerStart = performance.now();
+    currentTimerEl.classList.add('active');
+    currentTimerEl.classList.remove('done');
+
+    currentTimerInterval = setInterval(() => {
+        if (!currentTimerEl || !document.body.contains(currentTimerEl)) {
+            clearInterval(currentTimerInterval);
+            currentTimerInterval = null;
+            return;
+        }
+        const elapsed = (performance.now() - currentTimerStart) / 1000;
+        currentTimerEl.textContent = elapsed.toFixed(1) + 's';
+    }, 100);
+}
+
+/**
+ * 停止思维链计时器，保留最终时间
+ */
+function stopReasoningTimer() {
+    if (currentTimerInterval) {
+        clearInterval(currentTimerInterval);
+        currentTimerInterval = null;
+    }
+    if (currentTimerEl && document.body.contains(currentTimerEl)) {
+        if (currentTimerStart) {
+            const elapsed = (performance.now() - currentTimerStart) / 1000;
+            currentTimerEl.textContent = elapsed.toFixed(1) + 's';
+        }
+        currentTimerEl.classList.remove('active');
+        currentTimerEl.classList.add('done');
+    }
+    currentTimerStart = null;
 }
 
 /**
@@ -1347,7 +1507,8 @@ function getCurrentSettings() {
         presence_penalty: parseFloat(presencePenaltySlider.value),
         selectedPromptValue: predefinedPromptSelect.value, // 保存当前选中的模板值
         systemPromptContent: systemPromptInput.value, // 保存系统提示词内容（即使是模板生成的）
-        reasoningDefaultVisible: reasoningDefaultVisibleCheckbox.checked
+        reasoningDefaultVisible: reasoningDefaultVisibleCheckbox.checked,
+        reasoningEffort: reasoningEffortSelect.value // 新增：思考强度
     };
 
     // 清理无效的 max_tokens (确保是正整数)
@@ -1409,6 +1570,10 @@ function applySettings(settings) {
     if (settings.reasoningDefaultVisible !== undefined) {
         reasoningDefaultVisibleCheckbox.checked = settings.reasoningDefaultVisible;
     }
+    // 加载思考强度设置
+    if (settings.reasoningEffort !== undefined) {
+        reasoningEffortSelect.value = settings.reasoningEffort;
+    }
 }
 
 /**
@@ -1419,7 +1584,7 @@ function applyDefaultSettings() {
     // 【修改】默认值
     apiUrlSelect.value = "https://api.deepseek.com"; 
     customUrlInput.value = "";
-    modelSelect.value = "deepseek-reasoner";
+    modelSelect.value = "deepseek-v4-pro";
     customModelInput.value = "";
     handleApiUrlChange();
     handleModelChange();
@@ -1433,6 +1598,7 @@ function applyDefaultSettings() {
     predefinedPromptSelect.selectedIndex = 0; // 默认选择第一个预设提示词
     handlePredefinedPromptChange(); // 应用提示词
     reasoningDefaultVisibleCheckbox.checked = true; // 默认显示思维链
+    reasoningEffortSelect.value = "high"; // 默认高思考强度
     // 注意：不应在此处清除 API Key
     // apiKeyInput.value = '';
 }

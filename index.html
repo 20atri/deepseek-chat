@@ -27,6 +27,30 @@
 
             <!-- 消息输入区域 -->
             <div id="message-input-container">
+                <!-- 滚动控制按钮 -->
+                <button id="scroll-control-btn" title="页面滚动">
+                    <i class="fas fa-chevron-up"></i>
+                </button>
+
+                <!-- 滚动控制 Popover -->
+                <div id="scroll-popover" class="popover hidden">
+                    <div class="popover-section-label">页面滚动</div>
+                    <button id="scroll-to-top-btn" class="popover-btn">
+                        <i class="fas fa-angle-double-up"></i> 一键置顶
+                    </button>
+                    <button id="scroll-to-bottom-btn" class="popover-btn">
+                        <i class="fas fa-angle-double-down"></i> 一键到底
+                    </button>
+                    <div class="popover-divider"></div>
+                    <div class="popover-section-label">思维链控制</div>
+                    <button id="hide-all-reasoning-btn" class="popover-btn">
+                        <i class="fas fa-eye-slash"></i> 隐藏所有思维链
+                    </button>
+                    <button id="show-all-reasoning-btn" class="popover-btn">
+                        <i class="fas fa-eye"></i> 展开所有思维链
+                    </button>
+                </div>
+
                 <textarea id="user-input" placeholder="输入你的消息..." rows="1"></textarea> <!-- 用户输入框 -->
                 <button id="send-button" title="发送">
                     <i class="fas fa-paper-plane"></i> <!-- 发送图标 -->
@@ -76,7 +100,6 @@
                 <label for="api-url-select">API 地址 (Base URL):</label>
                 <select id="api-url-select">
                     <option value="https://api.deepseek.com" selected>标准版 (api.deepseek.com)</option>
-                    <option value="https://api.deepseek.com/v3.2_speciale_expires_on_20251215">V3.2 特供版 (2025/12/15过期)</option>
                     <option value="custom">自定义地址...</option>
                 </select>
                 <!-- 自定义 URL 输入框 (默认隐藏) -->
@@ -87,12 +110,23 @@
             <div class="setting-item">
                 <label for="model-select">模型:</label>
                 <select id="model-select">
-                    <option value="deepseek-chat">deepseek-chat</option>
-                    <option value="deepseek-reasoner" selected>deepseek-reasoner</option>
+                    <option value="deepseek-v4-flash">deepseek-v4-flash</option>
+                    <option value="deepseek-v4-pro" selected>deepseek-v4-pro</option>
                     <option value="custom">自定义模型...</option>
                 </select>
                 <!-- 自定义模型输入框 (默认隐藏) -->
                 <input type="text" id="custom-model-input" class="custom-input hidden" placeholder="输入模型名称 (例如 gpt-4o)">
+            </div>
+
+            <!-- 思考强度 (Reasoning Effort) - 仅对 deepseek-v4-pro 生效 -->
+            <div class="setting-item">
+                <label for="reasoning-effort">思考强度 (Reasoning Effort):</label>
+                <select id="reasoning-effort">
+                    <option value="">默认</option>
+                    <option value="high" selected>高 (High)</option>
+                    <option value="max">最高 (Max)</option>
+                </select>
+                <span class="setting-description">控制推理模型的思考深度，仅对 reasoner 模型有效。值越高思考越深入，但耗时越长。</span>
             </div>
 
             <!-- 温度 (Temperature) -->

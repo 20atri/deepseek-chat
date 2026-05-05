@@ -154,6 +154,38 @@ body {
     color: #003f80;
 }
 
+/* --- 思维链计时器 --- */
+.reasoning-timer {
+    font-size: 0.72em;
+    font-weight: 600;
+    color: #28a745;
+    background: #d4edda;
+    border-radius: 10px;
+    padding: 2px 8px;
+    margin-top: 3px;
+    margin-bottom: 5px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.3px;
+    display: none;
+    user-select: none;
+    width: fit-content;
+}
+.reasoning-timer.active {
+    display: inline-block;
+    animation: timerPulse 0.7s ease-in-out infinite;
+}
+.reasoning-timer.done {
+    display: inline-block;
+    animation: none;
+    color: #6c757d;
+    background: #e9ecef;
+}
+@keyframes timerPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
 /* --- 思维链 (Reasoning) 样式 --- */
 .reasoning-content {
     background-color: #f0f0f0; /* 更浅的灰色 */
@@ -422,6 +454,7 @@ body {
     background-color: #f8f9fa;
     align-items: flex-end;
     flex-shrink: 0;
+    position: relative;
 }
 #user-input {
     flex-grow: 1;
@@ -458,6 +491,90 @@ body {
 #send-button:hover { background-color: #0056b3; }
 #send-button:disabled { background-color: #cccccc; cursor: not-allowed; opacity: 0.6; }
 
+
+/* --- 滚动控制按钮 --- */
+#scroll-control-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 0.95em;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 8px;
+    flex-shrink: 0;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+#scroll-control-btn:hover { background-color: #5a6268; }
+#scroll-control-btn.active { background-color: #495057; transform: rotate(180deg); }
+
+/* --- 滚动 Popover --- */
+.popover {
+    position: absolute;
+    bottom: 58px;
+    left: 15px;
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 100;
+    min-width: 150px;
+    transform-origin: bottom left;
+    animation: popoverIn 0.2s ease;
+}
+.popover.hidden {
+    display: none;
+}
+@keyframes popoverIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.popover-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: #333;
+    font-size: 0.92em;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease;
+}
+.popover-btn i { width: 16px; text-align: center; }
+.popover-btn:hover { background-color: #f0f2f5; }
+.popover-btn:active { background-color: #e4e6e9; }
+
+.popover-section-label {
+    font-size: 0.7em;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 14px 2px;
+}
+
+.popover-divider {
+    height: 1px;
+    background: #eee;
+    margin: 4px 8px;
+}
 
 /* --- 存储控制按钮 --- */
 .storage-controls {
