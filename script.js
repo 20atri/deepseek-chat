@@ -40,9 +40,6 @@ const predefinedPromptSelect = document.getElementById('predefined-prompt-select
 const systemPromptInput = document.getElementById('system-prompt');
 const reasoningDefaultVisibleCheckbox = document.getElementById('reasoning-default-visible');
 const reasoningEffortSelect = document.getElementById('reasoning-effort'); // 新增：思考强度
-const reasoningEffortCustomInput = document.getElementById('reasoning-effort-custom'); // 新增：自定义思考强度输入框
-const thinkingModeCheckbox = document.getElementById('thinking-mode-enabled'); // 新增：思考模式开关
-const thinkingModeLabel = document.getElementById('thinking-mode-label'); // 新增：思考模式开关文字
 
 // const DEEPSEEK_API_BASE_URL = 'https://api.deepseek.com'; // 【修改】移除常量，改为动态获取
 
@@ -157,9 +154,7 @@ function addEventListeners() {
     predefinedPromptSelect.addEventListener('change', saveSettings);
     systemPromptInput.addEventListener('change', saveSettings);
     reasoningDefaultVisibleCheckbox.addEventListener('change', saveSettings);
-    reasoningEffortSelect.addEventListener('change', () => { handleReasoningEffortChange(); saveSettings(); }); // 新增：思考强度
-    reasoningEffortCustomInput.addEventListener('change', saveSettings); // 新增：自定义思考强度
-    thinkingModeCheckbox.addEventListener('change', () => { updateThinkingModeUI(); saveSettings(); }); // 新增：思考模式开关
+    reasoningEffortSelect.addEventListener('change', saveSettings); // 新增：思考强度
 
     // 聊天容器滚动监听 (用于优化自动滚动)
     chatContainer.addEventListener('scroll', handleChatScroll);
@@ -186,27 +181,6 @@ function handleModelChange() {
     } else {
         customModelInput.classList.add('hidden');
     }
-}
-
-// 【新增】处理思考强度选择变化 (显示/隐藏自定义输入框)
-function handleReasoningEffortChange() {
-    if (!reasoningEffortCustomInput) return;
-    if (reasoningEffortSelect.value === 'custom') {
-        reasoningEffortCustomInput.classList.remove('hidden');
-    } else {
-        reasoningEffortCustomInput.classList.add('hidden');
-    }
-}
-
-// 【新增】更新思考模式开关的中英文显示
-function updateThinkingModeUI() {
-    if (!thinkingModeCheckbox || !thinkingModeLabel) return;
-    thinkingModeLabel.textContent = thinkingModeCheckbox.checked ? '启用 (Enabled)' : '禁用 (Disabled)';
-}
-
-// 【新增】判断思考模式是否开启
-function isThinkingEnabled() {
-    return thinkingModeCheckbox ? thinkingModeCheckbox.checked : true;
 }
 
 // --- 处理预设提示词选择 ---
@@ -420,11 +394,8 @@ async function sendRequestToDeepSeekAPI() {
     currentAbortController = new AbortController();
     const signal = currentAbortController.signal;
 
-    // 获取思考强度 (支持自定义)
-    let reasoningEffort = reasoningEffortSelect.value;
-    if (reasoningEffort === 'custom') {
-        reasoningEffort = reasoningEffortCustomInput.value.trim();
-    }
+    // 获取思考强度
+    const reasoningEffort = reasoningEffortSelect.value;
 
     // --- 构建请求体 (包含新参数) ---
     const requestBody = {
@@ -442,8 +413,6 @@ async function sendRequestToDeepSeekAPI() {
     if (reasoningEffort) {
         requestBody.reasoning_effort = reasoningEffort;
     }
-    // 思考模式开关: 发送 {"thinking": {"type": "enabled/disabled"}}
-    requestBody.thinking = { type: thinkingModeCheckbox.checked ? 'enabled' : 'disabled' };
     // 移除值为 null 或无效值的参数，或与默认值相同的参数（可选，但更规范）
     if (requestBody.max_tokens === null || isNaN(requestBody.max_tokens) || requestBody.max_tokens <= 0) {
         delete requestBody.max_tokens;
@@ -533,7 +502,6 @@ async function processStream(stream) {
     let accumulatedReasoning = "";
     let initialChunkReceived = false; // 标记是否收到第一个有效块
     let reasoningTimerStarted = false; // 标记计时器是否已启动
-    let lastUsage = null; // 最近收到的 usage 统计 (部分 API 会在流结束时携带)
     const localMessageId = currentAssistantMessageId; // 捕获当前 ID
     console.log("开始处理流 for ID:", localMessageId);
 
@@ -573,54 +541,50 @@ async function processStream(stream) {
 
                  try {
                      const chunk = JSON.parse(dataJson);
-                     // 捕获 usage (部分 API 会在流结束时携带)
-                     if (chunk.usage) {
-                         lastUsage = chunk.usage;
-                     }
                      if (chunk.choices && chunk.choices.length > 0) {
                          const delta = chunk.choices[0].delta;
 
-                           // 首次收到有效内容时，清空占位符 '...'
-                           if (!initialChunkReceived && (delta.reasoning_content || delta.content)) {
-                               initialChunkReceived = true;
-                               if (currentContentDiv && document.body.contains(currentContentDiv) && currentContentDiv.textContent === '...') {
-                                   currentContentDiv.textContent = ''; // 清空占位符
-                               }
-                               // 启动生成计时器 (不受思考模式开关影响, 关闭思考模式时气泡也正常显示)
-                               if (!reasoningTimerStarted) {
-                                   reasoningTimerStarted = true;
-                                   startReasoningTimer();
-                               }
-                           }
+                          // 首次收到有效内容时，清空占位符 '...'
+                          if (!initialChunkReceived && (delta.reasoning_content || delta.content)) {
+                              initialChunkReceived = true;
+                              if (currentContentDiv && document.body.contains(currentContentDiv) && currentContentDiv.textContent === '...') {
+                                  currentContentDiv.textContent = ''; // 清空占位符
+                              }
+                          }
 
-                           // 更新思维链内容
-                           if (delta.reasoning_content) {
-                               accumulatedReasoning += delta.reasoning_content;
+                          // 更新思维链内容
+                          if (delta.reasoning_content) {
+                              // 首次收到思维链时启动计时器
+                              if (!reasoningTimerStarted) {
+                                  reasoningTimerStarted = true;
+                                  startReasoningTimer();
+                              }
+                              accumulatedReasoning += delta.reasoning_content;
                               if (messages[messageIndex]) { // 再次检查索引有效性
                                   messages[messageIndex].reasoning_content = accumulatedReasoning;
                               }
                               // 更新 UI (确保元素存在)
                               if (currentReasoningDiv && document.body.contains(currentReasoningDiv)) {
                                   currentReasoningDiv.textContent = accumulatedReasoning; // 直接更新文本
-                                  // 确保切换按钮可见 (思考模式关闭时不显示)
+                                  // 确保切换按钮可见
                                   const toggle = currentAssistantMessageDiv?.querySelector('.reasoning-toggle');
                                   if (toggle && document.body.contains(toggle)) {
-                                      if (isThinkingEnabled() && toggle.style.display === 'none') toggle.style.display = 'block';
-                                      // 如果思考模式开启且默认可见，则添加 visible 类
-                                      if (isThinkingEnabled() && !currentReasoningDiv.classList.contains('visible') && reasoningDefaultVisibleCheckbox.checked) {
+                                      if (toggle.style.display === 'none') toggle.style.display = 'block';
+                                      // 如果默认可见，则添加 visible 类
+                                      if (!currentReasoningDiv.classList.contains('visible') && reasoningDefaultVisibleCheckbox.checked) {
                                           currentReasoningDiv.classList.add('visible');
                                       }
                                   }
                               }
                           }
 
-                           // 更新主要内容
-                           if (delta.content) {
-                               // 有思维链时, 正文开始即停止计时器 (记录思维链用时); 无思维链时计时器持续到流结束 (记录生成用时)
-                               if (reasoningTimerStarted && accumulatedReasoning) {
-                                   stopReasoningTimer();
-                                   reasoningTimerStarted = false;
-                               }
+                          // 更新主要内容
+                          if (delta.content) {
+                              // 思维链结束，停止计时器
+                              if (reasoningTimerStarted) {
+                                  stopReasoningTimer();
+                                  reasoningTimerStarted = false;
+                              }
                               accumulatedContent += delta.content;
                               if (messages[messageIndex]) { // 再次检查索引有效性
                                   messages[messageIndex].content = accumulatedContent;
@@ -632,7 +596,6 @@ async function processStream(stream) {
                                   currentContentDiv.textContent = accumulatedContent;
                               }
                           }
-
                      }
                       // --- 修改点：调用条件滚动 ---
                       conditionalScrollChatToBottom(); // 每次收到数据块都尝试滚动
@@ -665,42 +628,14 @@ async function processStream(stream) {
                 currentReasoningDiv.style.display = 'none';
                 toggle.style.display = 'none';
             } else {
-                // 否则确保它们可见 (思考模式关闭时仍隐藏切换按钮)
+                // 否则确保它们可见
                 currentReasoningDiv.style.display = ''; // 或者 'block' 如果需要
-                toggle.style.display = isThinkingEnabled() ? 'block' : 'none';
-                 // 如果思考模式开启且默认可见，添加 visible 类
-                 if (isThinkingEnabled() && reasoningDefaultVisibleCheckbox.checked && !currentReasoningDiv.classList.contains('visible')) {
+                toggle.style.display = 'block';
+                 // 如果默认可见但当前不可见，添加 visible 类
+                 if (reasoningDefaultVisibleCheckbox.checked && !currentReasoningDiv.classList.contains('visible')) {
                      currentReasoningDiv.classList.add('visible');
                  }
             }
-        }
-    }
-    // 最终 Token 统计
-    if (messages[messageIndex]) {
-        let finalUsage;
-        if (lastUsage && lastUsage.completion_tokens) {
-            // 如果 API 提供了 usage, 以其总数为准, 按估算比例拆分 thinking/content
-            const estReasoning = estimateTokens(accumulatedReasoning);
-            const estContent = estimateTokens(accumulatedContent);
-            const estTotal = estReasoning + estContent;
-            const apiTotal = lastUsage.completion_tokens;
-            let finalReasoning = estTotal > 0 ? Math.round(apiTotal * estReasoning / estTotal) : 0;
-            let finalContent = apiTotal - finalReasoning;
-            if (finalReasoning < 0) finalReasoning = 0;
-            if (finalContent < 0) finalContent = 0;
-            finalUsage = { reasoning_tokens: finalReasoning, content_tokens: finalContent, total_tokens: apiTotal };
-        } else {
-            const estReasoning = estimateTokens(accumulatedReasoning);
-            const estContent = estimateTokens(accumulatedContent);
-            finalUsage = { reasoning_tokens: estReasoning, content_tokens: estContent, total_tokens: estReasoning + estContent };
-        }
-        // 流式期间气泡处于加载状态, 结束时从 0 平滑过渡到 API 真实值
-        const prevUsage = messages[messageIndex].usage;
-        messages[messageIndex].usage = finalUsage;
-        const finalUsageEl = currentAssistantMessageDiv?.querySelector('.token-usage');
-        if (finalUsageEl && document.body.contains(finalUsageEl)) {
-            animateTokenUsage(finalUsageEl, prevUsage, finalUsage);
-            finalUsageEl.classList.remove('active');
         }
     }
     // 确保保存包含完整内容的对话记录
@@ -737,13 +672,12 @@ function appendMessageToUI(message, isStreaming = false) {
 
         // 只为 assistant 消息创建 reasoning 相关元素
         if (message.role === 'assistant') {
-            const thinkingEnabled = isThinkingEnabled();
             reasoningToggle = document.createElement('span');
             reasoningToggle.className = 'reasoning-toggle';
             reasoningToggle.textContent = '显示/隐藏 思维链';
             reasoningToggle.dataset.targetId = `reasoning-${message.id}`;
-            // 初始时，如果思考模式开启且正在流式传输或已有内容，则显示按钮
-            reasoningToggle.style.display = (thinkingEnabled && (message.reasoning_content || isStreaming)) ? 'block' : 'none';
+            // 初始时，如果正在流式传输或已有内容，则显示按钮
+            reasoningToggle.style.display = (message.reasoning_content || isStreaming) ? 'block' : 'none';
             contentWrapper.appendChild(reasoningToggle);
 
             // 思维链计时器 — 放在切换按钮下方
@@ -754,29 +688,12 @@ function appendMessageToUI(message, isStreaming = false) {
             contentWrapper.appendChild(timerEl);
             if (isStreaming) currentTimerEl = timerEl;
 
-            // Token 消耗显示 — 放在思维链计时器(回复时间气泡栏)旁边, 可点击展开/折叠
-            const tokenUsageEl = document.createElement('span');
-            tokenUsageEl.className = 'token-usage';
-            tokenUsageEl.id = `token-usage-${message.id}`;
-            tokenUsageEl.title = '点击展开 Token 详情';
-            tokenUsageEl.style.cursor = 'pointer';
-            if (isStreaming) {
-                renderTokenLoading(tokenUsageEl);
-                tokenUsageEl.classList.add('active');
-            } else if (message.usage) {
-                renderTokenUsage(tokenUsageEl, message.usage);
-            } else {
-                tokenUsageEl.style.display = 'none';
-            }
-            tokenUsageEl.addEventListener('click', () => toggleTokenUsage(tokenUsageEl));
-            contentWrapper.appendChild(tokenUsageEl);
-
             reasoningDiv = document.createElement('div');
             reasoningDiv.className = 'reasoning-content';
             reasoningDiv.id = `reasoning-${message.id}`;
             reasoningDiv.textContent = message.reasoning_content || ''; // 设置现有内容
-            // 如果思考模式开启、设置了默认可见，并且有内容或正在流式传输，则添加 'visible' 类
-            if ((thinkingEnabled && reasoningDefaultVisibleCheckbox.checked && (message.reasoning_content || isStreaming))) {
+            // 如果设置了默认可见，并且有内容或正在流式传输，则添加 'visible' 类
+            if ((reasoningDefaultVisibleCheckbox.checked && (message.reasoning_content || isStreaming))) {
                 reasoningDiv.classList.add('visible');
             }
             // 如果不是流式传输且没有内容，则彻底隐藏
@@ -1053,128 +970,6 @@ function stopReasoningTimer() {
         currentTimerEl.classList.add('done');
     }
     currentTimerStart = null;
-}
-
-// --- Token 统计工具 ---
-
-/**
- * 估算一段文本对应的 token 数量 (中文字符约 1 token/字, 其他文本约 4 字符/token)
- */
-function estimateTokens(text) {
-    if (!text) return 0;
-    const cjkCount = (text.match(/[\u2E80-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF\u3000-\u303F]/g) || []).length;
-    const otherCount = text.length - cjkCount;
-    return Math.ceil(cjkCount + otherCount / 4);
-}
-
-/**
- * 将 token 数量格式化为 K 单位
- */
-function formatTokenCount(tokens) {
-    // 不足 1000 时直接显示实际数值，达到 1000 后再使用 k 缩写
-    if (tokens < 1000) return String(tokens);
-    return (tokens / 1000).toFixed(1) + 'k';
-}
-
-/**
- * 确保 token 气泡的 DOM 结构存在, 返回各子元素引用
- */
-function ensureTokenChildren(el) {
-    let totalEl = el.querySelector('.tk-total');
-    if (!totalEl) {
-        totalEl = document.createElement('span');
-        totalEl.className = 'tk-total';
-        el.appendChild(totalEl);
-    }
-    let detailEl = el.querySelector('.tk-detail');
-    if (!detailEl) {
-        detailEl = document.createElement('span');
-        detailEl.className = 'tk-detail';
-        el.appendChild(detailEl);
-    }
-    let thinkingEl = detailEl.querySelector('.tk-thinking');
-    if (!thinkingEl) {
-        thinkingEl = document.createElement('span');
-        thinkingEl.className = 'tk-thinking';
-        detailEl.appendChild(thinkingEl);
-    }
-    let contentEl = detailEl.querySelector('.tk-content');
-    if (!contentEl) {
-        contentEl = document.createElement('span');
-        contentEl.className = 'tk-content';
-        detailEl.appendChild(contentEl);
-    }
-    return { totalEl, thinkingEl, contentEl };
-}
-
-/**
- * 渲染 Token 消耗气泡 (默认折叠只显示总消耗, 点击展开后显示思考消耗/正文消耗明细)
- * 不足 1000 显示实际数值, 达到 1000 使用 k 缩写
- */
-function renderTokenUsage(el, usage) {
-    if (!el) return;
-    const reasoning = usage && usage.reasoning_tokens !== undefined ? usage.reasoning_tokens : 0;
-    const content = usage && usage.content_tokens !== undefined ? usage.content_tokens : 0;
-    const total = usage && usage.total_tokens !== undefined ? usage.total_tokens : (reasoning + content);
-    const { totalEl, thinkingEl, contentEl } = ensureTokenChildren(el);
-    totalEl.textContent = `${formatTokenCount(total)} tokens`;
-    thinkingEl.textContent = `思考消耗：${formatTokenCount(reasoning)} tokens`;
-    contentEl.textContent = `正文消耗：${formatTokenCount(content)} tokens`;
-}
-
-/**
- * 渲染 Token 气泡的加载状态 (API 未返回真实 token 数据前显示)
- */
-function renderTokenLoading(el) {
-    if (!el) return;
-    const { totalEl, thinkingEl, contentEl } = ensureTokenChildren(el);
-    totalEl.textContent = '… tokens';
-    thinkingEl.textContent = '思考消耗：… tokens';
-    contentEl.textContent = '正文消耗：… tokens';
-}
-
-/**
- * 展开/折叠 Token 消耗气泡
- */
-function toggleTokenUsage(el) {
-    if (!el) return;
-    el.classList.toggle('expanded');
-    el.title = el.classList.contains('expanded') ? '点击收起 Token 详情' : '点击展开 Token 详情';
-}
-
-/**
- * 流结束后, 将 token 数值从流式估算值平滑过渡到 API 真实值, 避免数字倒转跳变
- */
-function animateTokenUsage(el, fromUsage, toUsage, duration = 500) {
-    if (!el || !toUsage) return;
-    const getU = (u, key) => (u && u[key] !== undefined) ? u[key] : 0;
-    const from = {
-        reasoning: getU(fromUsage, 'reasoning_tokens'),
-        content: getU(fromUsage, 'content_tokens'),
-        total: getU(fromUsage, 'total_tokens') || (getU(fromUsage, 'reasoning_tokens') + getU(fromUsage, 'content_tokens'))
-    };
-    const to = {
-        reasoning: getU(toUsage, 'reasoning_tokens'),
-        content: getU(toUsage, 'content_tokens'),
-        total: getU(toUsage, 'total_tokens') || (getU(toUsage, 'reasoning_tokens') + getU(toUsage, 'content_tokens'))
-    };
-    const start = performance.now();
-    function frame(now) {
-        const t = Math.min(1, (now - start) / duration);
-        const ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
-        const cur = {
-            reasoning_tokens: Math.round(from.reasoning + (to.reasoning - from.reasoning) * ease),
-            content_tokens: Math.round(from.content + (to.content - from.content) * ease),
-            total_tokens: Math.round(from.total + (to.total - from.total) * ease)
-        };
-        renderTokenUsage(el, cur);
-        if (t < 1) {
-            requestAnimationFrame(frame);
-        } else {
-            renderTokenUsage(el, toUsage);
-        }
-    }
-    requestAnimationFrame(frame);
 }
 
 /**
@@ -1713,9 +1508,7 @@ function getCurrentSettings() {
         selectedPromptValue: predefinedPromptSelect.value, // 保存当前选中的模板值
         systemPromptContent: systemPromptInput.value, // 保存系统提示词内容（即使是模板生成的）
         reasoningDefaultVisible: reasoningDefaultVisibleCheckbox.checked,
-        reasoningEffort: reasoningEffortSelect.value, // 新增：思考强度
-        reasoningEffortCustom: reasoningEffortCustomInput.value.trim(), // 新增：自定义思考强度
-        thinkingModeEnabled: thinkingModeCheckbox.checked // 新增：思考模式开关
+        reasoningEffort: reasoningEffortSelect.value // 新增：思考强度
     };
 
     // 清理无效的 max_tokens (确保是正整数)
@@ -1779,20 +1572,8 @@ function applySettings(settings) {
     }
     // 加载思考强度设置
     if (settings.reasoningEffort !== undefined) {
-        // 校验保存的值是否在当前选项列表中，无效/过期值回退到默认 low
-        const validEffortValues = Array.from(reasoningEffortSelect.options).map(opt => opt.value);
-        reasoningEffortSelect.value = validEffortValues.includes(settings.reasoningEffort) ? settings.reasoningEffort : 'low';
+        reasoningEffortSelect.value = settings.reasoningEffort;
     }
-    // 加载自定义思考强度设置
-    if (settings.reasoningEffortCustom !== undefined) {
-        reasoningEffortCustomInput.value = settings.reasoningEffortCustom;
-    }
-    // 加载思考模式开关设置
-    if (settings.thinkingModeEnabled !== undefined) {
-        thinkingModeCheckbox.checked = settings.thinkingModeEnabled;
-    }
-    handleReasoningEffortChange(); // 同步自定义输入框显隐
-    updateThinkingModeUI(); // 同步思考模式开关文字
 }
 
 /**
@@ -1817,11 +1598,7 @@ function applyDefaultSettings() {
     predefinedPromptSelect.selectedIndex = 0; // 默认选择第一个预设提示词
     handlePredefinedPromptChange(); // 应用提示词
     reasoningDefaultVisibleCheckbox.checked = true; // 默认显示思维链
-    reasoningEffortSelect.value = "low"; // 默认低思考强度
-    reasoningEffortCustomInput.value = ''; // 清空自定义思考强度
-    thinkingModeCheckbox.checked = true; // 默认启用思考模式
-    handleReasoningEffortChange(); // 同步自定义输入框显隐
-    updateThinkingModeUI(); // 同步思考模式开关文字
+    reasoningEffortSelect.value = "high"; // 默认高思考强度
     // 注意：不应在此处清除 API Key
     // apiKeyInput.value = '';
 }
