@@ -122,11 +122,24 @@
             <div class="setting-item">
                 <label for="reasoning-effort">思考强度 (Reasoning Effort):</label>
                 <select id="reasoning-effort">
-                    <option value="">默认</option>
-                    <option value="high" selected>高 (High)</option>
-                    <option value="max">最高 (Max)</option>
+                    <option value="low" selected>低 (Low)（默认）</option>
+                    <option value="medium">中 (Medium)</option>
+                    <option value="high">高 (High)</option>
+                    <option value="custom">自定义...</option>
                 </select>
-                <span class="setting-description">控制推理模型的思考深度，仅对 reasoner 模型有效。值越高思考越深入，但耗时越长。</span>
+                <!-- 自定义思考强度输入框 (默认隐藏) -->
+                <input type="text" id="reasoning-effort-custom" class="custom-input hidden" placeholder="输入自定义思考强度值 (例如 medium 或数值)">
+                <span class="setting-description">控制推理模型的思考深度，仅对 reasoner 模型有效。值越高思考越深入，但耗时越长。选择“自定义”后可输入任意值。</span>
+            </div>
+
+            <!-- 思考模式 (Thinking Mode) -->
+            <div class="setting-item">
+                <label>思考模式 (Thinking Mode):</label>
+                <label>
+                    <input type="checkbox" id="thinking-mode-enabled" checked>
+                    <span id="thinking-mode-label">启用 (Enabled)</span>
+                </label>
+                <span class="setting-description">开启时发送 {"thinking": {"type": "enabled"}}，关闭时发送 {"thinking": {"type": "disabled"}}。取消勾选后默认隐藏思维链气泡。</span>
             </div>
 
             <!-- 温度 (Temperature) -->
